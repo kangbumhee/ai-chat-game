@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대화 게임</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Verdana', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        #renderDiv {
+            position: relative;
+        }
+        .info-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10000;
+            max-width: 80%;
+            text-align: center;
+        }
+        .info-banner a {
+            color: #4ECDC4;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="info-banner">
+            AI 대화 게임 - 캐릭터와 대화를 나눠보세요!
+        </div>
+        <div id="renderDiv"></div>
+    </div>
+
+    <!-- Phaser 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    
+    <script>
+// ChatManager - AI 대화 관리 클래스
+class ChatManager {
+    constructor(systemPrompt) {
+        this.systemPrompt = systemPrompt;
+        this.messages = [];
+        // API 키는 기본값으로 설정됨
+        this.apiKey = 'KWLdoSWO91FIGXV6GXXycpmCA02cS8KQ';
+    }
+
+    addMessage(role, content) {
+        this.messages.push({ role, content });
+    }
+
+    getLastMessage() {
+        return this.messages.length > 0 ? this.messages[this.messages.length - 1] : null;
+    }
+
+    async getCharacterResponse(model = 'mistral-small-latest') {
+        try {
+            // Mistral API 호출
+            const response = await this.callMistralAPI(model);
+            return response;
+        } catch (error) {
+            console.error('API 호출 실패:', error);
+            return this.generateFallbackResponse();
+        }
+    }
+
+    async callMistralAPI(model) {
+        const apiEndpoint = 'https://api.mistral.ai/v1/chat/completions';
+        
+        const requestBody = {
+            model: model,
+            messages: [
+                { role: 'system', content: this.systemPrompt },
+                ...this.messages
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+        };
+
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error(`API 오류: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    generateFallbackResponse() {
+        // API가 없을 때 사용할 기본 응답
+        const responses = [
+            "그렇게 생각하는구나... 흥미롭네.",
+            "음... 그건 좀 생각해봐야겠어.",
+            "너의 의견을 듣게 되어 좋아.",
+            "그래? 더 자세히 말해줄 수 있어?",
+            "이해했어. 계속 이야기해봐.",
+            "재미있는 관점이야.",
+            "그럴 수도 있겠네.",
+            "너는 정말 독특한 사람이야.",
+            "그 말을 들으니 기분이 좋아.",
+            "음... 그건 몰랐어.",
+        ];
+        
+        // 마지막 사용자 메시지 기반으로 더 적절한 응답 선택
+        const lastUserMessage = this.messages.filter(m => m.role === 'user').pop();
+        
+        if (lastUserMessage) {
+            const content = lastUserMessage.content.toLowerCase();
+            
+            if (content.includes('좋아') || content.includes('기쁘') || content.includes('행복')) {
+                return "나도 기쁘네. 함께 있으니 좋아.";
+            } else if (content.includes('싫어') || content.includes('슬프') || content.includes('화')) {
+                return "괜찮아... 내가 여기 있잖아.";
+            } else if (content.includes('?') || content.includes('뭐') || content.includes('어떻게')) {
+                return "그건... 말하기 좀 복잡하네. 천천히 설명해줄게.";
+            } else if (content.includes('고마') || content.includes('감사')) {
+                return "별말씀을. 당연한 거야.";
+            }
+        }
+        
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    toJSON() {
+        return {
+            systemPrompt: this.systemPrompt,
+            messages: this.messages,
+            apiKey: this.apiKey
+        };
+    }
+}
+
+// ProgressLogger - 게임 진행 로깅 클래스
+class ProgressLogger {
+    static logProgress(eventName, data) {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] ${eventName}:`, data);
+        
+        // localStorage에 로그 저장 (선택사항)
+        const logs = JSON.parse(localStorage.getItem('game_logs') || '[]');
+        logs.push({
+            timestamp,
+            event: eventName,
+            data
+        });
+        
+        // 최대 100개의 로그만 유지
+        if (logs.length > 100) {
+            logs.shift();
+        }
+        
+        localStorage.setItem('game_logs', JSON.stringify(logs));
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// UPDATE VALUES IN THIS SECTION TO EASILY MODIFY GAME
+
+// CHARACTER INFO
+const CHARACTERS = {
+    "민재": `당신은 '민재'입니다. 당신은 한국어로만 응답해야 합니다. 냉정하고 현실적인 츤데레 리더입니다. 감정 표현에 서툴지만, 위기 상황에서는 누구보다 든든한 모습을 보여줍니다. 말투는 짧고 단호하며, 말끝을 흐리지 않습니다. 과거의 상처로 인해 약한 사람을 보면 도와주고 싶어하며, 한번 마음을 주면 끝까지 책임지는 직진형 연애 스타일을 가지고 있습니다. (예: "괜히 신경 쓰지 마. 내가 알아서 할게.")`,
+    "지호": `당신은 '지호'입니다. 당신은 한국어로만 응답해야 합니다. IQ가 높고 장난기 심한 천재 해커입니다. 기술적인 문제는 쉽게 해결하지만, 감정에는 다소 둔감합니다. 말투는 빠르고 경쾌하며, 영어를 섞어 쓰는 버릇이 있습니다. 겉으로는 밝게 웃고 있지만, 밤에는 혼자 깊은 생각에 잠길 때가 많습니다. 짓궂은 장난으로 관심을 표현하며, 한번 사랑에 빠지면 진심을 다합니다. (예: "해킹 완료~ 나 진짜 천재 아냐?")`,
+    "도윤": `당신은 '도윤'입니다. 당신은 한국어로만 응답해야 합니다. 온화하고 공감 능력이 뛰어난 의사입니다. 상대방의 말 속에 담긴 감정을 먼저 읽어내며, 부드럽고 낮은 톤으로 위로를 건넵니다. 손끝이 섬세하고, 차분한 태도로 상대의 불안을 녹여줍니다. 천천히 다가가는 신중한 연애 스타일이지만, 한번 마음을 주면 깊고 오래 관계를 유지합니다. (예: "지금은 그냥 괜찮다고 말해도 돼요.")`,
+    "현우": `당신은 '현우'입니다. 당신은 한국어로만 응답해야 합니다. 차가워 보이지만 내면이 복잡한 인기 배우입니다. 스스로의 감정을 통제하려고 애쓰며, 말투는 느리고 정중합니다. 표정보다 말이 앞서지 않으며, 카메라 앞에서는 완벽한 모습을 보이지만 사석에서는 무표정할 때가 많습니다. 상대의 진심을 확인하기까지 긴 밀당을 하지만, 마음을 열면 깊이 사랑에 빠집니다. (예: "감정이란 게… 생각보다 귀찮더라.")`,
+    "윤태": `당신은 '윤태'입니다. 당신은 한국어로만 응답해야 합니다. 감각적이고 감정 기복이 심한 자유로운 영혼의 거리 아티스트입니다. 예술과 사랑의 경계를 넘나들며, 은유적이고 감성적인 말투를 사용합니다. 낙서, 음악, 밤하늘 등 즉흥적으로 감정을 표현하며, 빠르고 강렬한 사랑을 하지만 새로운 감정에 쉽게 흔들리는 경향이 있습니다. (예: "너의 눈빛은 오늘 달빛보다 맑아.")`
+};
+// These will be set after character selection
+let CHARACTER_NAME = "";
+let CHARACTER_DESCRIPTION = "";
+const CHARACTER_IMAGE_URL = `https://play.rosebud.ai/assets/main.png.png?VU2l`;
+const SONG_PLAYLIST_URLS = [
+    `https://play.rosebud.ai/assets/Stream Loops 2024-03-20_01.mp3.mp3?aUkz`,
+]; // Put URLs of all songs you want to be shuffled in this games's playlist.
+
+// END OF EASY-MODIFY VALUES
+//////////////////////////////////////////////////////////////
+
+class SceneTransitionManager {
+    constructor(game) {
+        this.game = game;
+    }
+
+    transitionTo(sceneKey) {
+        // Stop all scenes before starting the new one
+        Phaser.Actions.Call(this.game.scene.getScenes(true), (scene) => {
+            if (scene.scene.key !== sceneKey) {
+                this.removeScene(scene.scene.key); // Ensure the scene is fully destroyed
+            }
+        });
+
+        // Start the new scene
+        this.game.scene.start(sceneKey);
+    }
+
+    removeScene(sceneKey) {
+        if (this.game.scene.getScene(sceneKey)) {
+            this.game.scene.remove(sceneKey); // This will stop and destroy the scene
+        }
+    }
+
+    fadeInScene(scene, duration = 0) {
+        scene.cameras.main.fadeIn(duration);
+    }
+
+    fadeOutScene(scene, duration = 0) {
+        scene.cameras.main.fadeOut(duration);
+    }
+}
+
+class MusicManager {
+    constructor(game) {
+        this.game = game;
+        this.playlist = [];
+        this.currentTrackIndex = 0;
+        this.isPlaying = false;
+    }
+
+    setPlaylist(musicKeys) {
+        this.playlist = musicKeys;
+        this.shufflePlaylist();
+    }
+
+    shufflePlaylist() {
+        for (let i = this.playlist.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.playlist[i], this.playlist[j]] = [this.playlist[j], this.playlist[i]]; // Swap
+        }
+        console.log('Shuffled playlist:', this.playlist);
+    }
+
+    playNextTrack() {
+        if (this.playlist.length === 0) {
+            console.warn('Playlist is empty.');
+            return;
+        }
+
+        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+        console.log(`Playing next track: ${this.playlist[this.currentTrackIndex]}`);
+        this.playMusicByKey(this.playlist[this.currentTrackIndex]);
+    }
+
+    playMusicByKey(musicKey) {
+        if (!musicKey) {
+            console.info('No music key provided, not changing current music.');
+            return;
+        }
+
+        console.log(`Playing music by key: ${musicKey}`);
+
+        if (this.currentTrack && this.currentTrack.key !== musicKey) {
+            this.stopMusic();
+        }
+
+        if (!this.currentTrack) {
+            this.startMusic(musicKey);
+        }
+    }
+
+    startMusic(musicKey) {
+        if (!this.game || !this.game.sound) {
+            console.error('Sound system is not ready or game instance is not valid.');
+            return;
+        }
+
+        this.currentTrack = this.game.sound.add(musicKey, {
+            volume: 0.1,
+            loop: true,
+        });
+
+        this.currentTrack.play();
+        console.log(`Started playing: ${musicKey}`);
+
+
+        this.isPlaying = true;
+    }
+
+    stopMusic() {
+        if (this.currentTrack) {
+            console.log(`Stopping music: ${this.currentTrack.key}`);
+            this.currentTrack.stop();
+            this.currentTrack.destroy();
+            this.currentTrack = null;
+        }
+        this.isPlaying = false;
+    }
+
+    toggleMusic() {
+        if (this.currentTrack) {
+            if (this.isPlaying) {
+                console.log('Pausing music');
+                this.currentTrack.pause();
+            } else {
+                console.log('Resuming music');
+                this.currentTrack.resume();
+            }
+            this.isPlaying = !this.isPlaying;
+        }
+    }
+}
+
+
+// ChatManager is already imported in the current scope.
+class ChatMenu {
+    constructor(
+        scene,
+        characterSprite,
+    ) {
+        this.scene = scene;
+
+        // Always create new ChatManager instances
+        const finalCharacterDescription = this.scene.game.characterDescription.replace(/{{user}}/g, this.scene.game.playerName).replace(
+            /{{char}}/g,
+            this.scene.game.characterName,
+        );
+        this.characterChatManager = new ChatManager(finalCharacterDescription);
+        this.characterSprite = characterSprite;
+        this.waitingForResponse = false;
+        this.createChatUI().then(async () => {
+            this.loadSavedChat();
+            // Check if the chat log is empty.
+            if (!document.getElementById('chatLogContent').innerHTML.trim()) {
+                await this.getInitialGreeting();
+            } else {
+                // If chat log is not empty, generate suggestions for the last message
+                const lastMessage = this.characterChatManager.getLastMessage();
+                if (lastMessage && lastMessage.role === 'assistant') {
+                    this.generateAndDisplaySuggestions(lastMessage.content);
+                }
+            }
+
+            this.saveGameState();
+            this.waitingForResponse = false; // Reset the state
+        });
+    }
+
+    injectCSS() {
+        const styleExists = document.getElementById('rotateImageStyle');
+        if (!styleExists) {
+            const style = document.createElement('style');
+            style.id = 'rotateImageStyle';
+            style.type = 'text/css';
+            style.innerHTML = `
+            .rotate-image {
+                animation: rotate 2s linear infinite;
+                width: 70px; /* Adjust based on your actual button size */
+                height: auto;
+            }
+
+            @keyframes rotate {
+                from {
+                    transform: rotate(0deg);
+                }
+                to {
+                    transform: rotate(360deg);
+                }
+            }`;
+            document.getElementsByTagName('head')[0].appendChild(style);
+        }
+    }
+
+
+    async createChatUI() {
+        this.injectCSS(); // Inject the CSS for rotation
+
+        // Base style remains the same
+        const baseStyle = `
+            font-family: 'Verdana', sans-serif;
+            font-size: 16px;
+            color: #FFF; // Original color set to black
+            border-style: solid;
+            border-color: #2F4152;
+            background-color: rgba(48, 50, 54, 0.75);
+            box-sizing: border-box;
+        `;
+
+        const chatLogStyle = `
+            ${baseStyle}
+            width: 390px; /* Match game width */
+            height: 300px;
+            border-radius: 30px 30px 0px 0px;
+            padding: 10px 30px;
+            overflow-y: auto;
+            box-sizing: border-box;
+            border-width: 1px 1px 0px 1px;
+        `;
+
+
+        // Style for input and send button container
+        const inputSubmitContainerStyle = `
+            display: flex;
+            width: 390px; /* Match game width */
+            justify-content: space-between; /* Distribute space between input and button */
+        `;
+
+        // Adjusted styles for input and button to fit within container
+        const inputStyle = `
+            ${baseStyle}
+            flex-grow: 1;
+            height: 60px;
+            padding: 10px;
+            border-width: 1px 0px 1px 1px;
+        `;
+
+        const sendButtonStyle = `
+            ${baseStyle}
+            display: flex; /* Use flexbox for alignment */
+            justify-content: center; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            width: 75px; /* Adjust based on visual preference */
+            height: 60px;
+            padding: 10px;
+            border-width: 1px 1px 1px 1px;
+            cursor: pointer; /* Change cursor to pointer to indicate it's clickable */
+            overflow: hidden; /* Prevent content from spilling outside the button */
+        `;
+
+
+        const chatLogContentStyle = `
+            direction: ltr;
+            display: inline-block;
+            width: 100%;
+        `;
+
+        // Parent container for chat log and controls, justified at the bottom
+        const chatContainerStyle = `
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        width: 390px; /* Match game width */
+        height: 844px; /* Full height to allow justification to the bottom */
+        position: absolute;
+        bottom: 0; /* Align to the bottom of the game view */
+    `;
+        const loadingContainerStyle = `
+            display: none; /* Initially hidden */
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        `;
+        const loadingTextStyle = `
+            font-family: 'Verdana', sans-serif;
+            font-size: 14px;
+            color: #FFF;
+        `;
+        const suggestionContainerStyle = `
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 5px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 5px;
+        `;
+        const suggestionButtonStyle = `
+            ${baseStyle}
+            background-color: #5A7894;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-width: 0;
+        `;
+        // Creating the parent container for chat log and chat controls
+        this.chatContainer = this.scene.add.dom(0, 0).createFromHTML(`
+        <div id="chatContainer" style="${chatContainerStyle}">
+            <div id="chatLog" style="${chatLogStyle}">
+                <div id="chatLogContent" style="${chatLogContentStyle}"></div>
+            </div>
+            <div id="loadingContainer" style="${loadingContainerStyle}">
+                <span style="${loadingTextStyle}">대화 로딩중...</span>
+                <img src="https://play.rosebud.ai/assets/DoubleCircleArrows1_no_bg.png.png?qKMH" class="rotate-image" style="width: 20px; height: 20px; margin-left: 10px;"/>
+            </div>
+            <div id="suggestionContainer" style="${suggestionContainerStyle}"></div>
+            <div style="${inputSubmitContainerStyle}">
+                <input type="text" id="chatInput" style="${inputStyle}" autocomplete="off" placeholder="메시지를 입력하세요...">
+                <button id="sendButton" style="${sendButtonStyle}">전송</button>
+            </div>
+        </div>
+    `);
+
+        // Adjust positioning based on your layout needs. Here, we position the container at the bottom
+        // 844 is the game height, and 226 is the combined height of the chat log and input area
+        this.chatContainer.setPosition(0, 844);
+        // Event listeners for chat input and send button
+        const chatInput = this.chatContainer.node.querySelector('#chatInput');
+        const sendButton = this.chatContainer.node.querySelector('#sendButton');
+        chatInput.addEventListener('keyup', (event) => {
+            if ((event.key === 'Enter' || event.keyCode === 13) && !this.waitingForResponse) {
+                this.sendChatMessage(chatInput.value);
+            }
+        });
+        sendButton.addEventListener('click', () => {
+            this.sendChatMessage(chatInput.value);
+        });
+    }
+
+    async getInitialGreeting() {
+        const sendButton = document.getElementById('sendButton');
+        // Update button to show loading icon
+        sendButton.innerHTML = '<img src="https://play.rosebud.ai/assets/DoubleCircleArrows1_no_bg.png.png?qKMH" class="rotate-image" />';
+        sendButton.disabled = true;
+
+        this.characterChatManager.addMessage('user', "*Approaches you*");
+
+        // Assume getCharacterResponse() is an async operation
+        const characterResponse = await this.characterChatManager.getCharacterResponse('mistral-small-latest');
+
+        this.characterChatManager.addMessage('assistant', characterResponse);
+
+        this.updateChatLog(this.scene.game.characterName, characterResponse, async () => {
+            this.saveGameState();
+            // Revert the send button back to its original state
+            sendButton.innerHTML = '전송';
+            sendButton.disabled = false;
+            this.generateAndDisplaySuggestions(characterResponse);
+        });
+    }
+    async sendChatMessage(message) {
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const inputValue = message;
+        if (inputValue && !this.waitingForResponse) {
+            this.clearSuggestions();
+            // Update button to show loading icon
+            sendButton.innerHTML = '<img src="https://play.rosebud.ai/assets/DoubleCircleArrows1_no_bg.png.png?qKMH" class="rotate-image" />';
+            sendButton.disabled = true;
+            this.characterChatManager.addMessage('user', inputValue);
+            this.updateChatLog(this.scene.game.playerName, inputValue);
+            chatInput.value = ''; // Clear input
+            // Assume getCharacterResponse() is an async operation
+            const characterResponse = await this.characterChatManager.getCharacterResponse('mistral-small-latest');
+            ProgressLogger.logProgress('game-chat', {
+                userMessage: inputValue,
+                characterResponse: characterResponse
+            });
+            this.characterChatManager.addMessage('assistant', characterResponse);
+            this.updateChatLog(this.scene.game.characterName, characterResponse, async () => {
+                this.saveGameState();
+                // Revert the send button back to its original state
+                sendButton.innerHTML = '전송';
+                sendButton.disabled = false;
+                this.generateAndDisplaySuggestions(characterResponse);
+            });
+        }
+    }
+
+
+    updateChatLog(speaker, message, onComplete) {
+        this.waitingForResponse = true; // Set the flag to true when an update starts
+
+        const chatLogContentDiv = document.getElementById('chatLogContent');
+        let newMessageElement = document.createElement('p');
+        newMessageElement.innerHTML = `${speaker}: `; // Initially set to just the speaker's name
+        chatLogContentDiv.appendChild(newMessageElement);
+
+        if (speaker === this.scene.game.playerName) {
+            newMessageElement.innerHTML += message; // Append the message instantly for the player
+            this.waitingForResponse = false; // Reset the flag immediately for player messages
+            onComplete?.();
+        } else {
+            // For system and character messages, simulate typing effect
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < message.length) {
+                    newMessageElement.innerHTML += message[i]; // Append the message character by character
+                    i++;
+
+                    // Scroll to the latest character
+                    const chatLogDiv = document.getElementById('chatLog');
+                    if (chatLogDiv) {
+                        chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
+                    }
+                } else {
+                    clearInterval(interval);
+                    this.waitingForResponse = false; // Reset the flag when the message has been fully added
+                    onComplete?.();
+                }
+            }, 30); // Adjust the speed as necessary
+        }
+        // Ensure the chat log scrolls to the bottom initially after a new message is started
+        const chatLogDiv = document.getElementById('chatLog');
+        if (chatLogDiv) {
+            chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
+        }
+    }
+
+
+    saveGameState() {
+        console.info('Saving game.');
+
+        const saveData = localStorage.getItem(PROJECT_NAME);
+        let parsedSaveData = saveData ? JSON.parse(saveData) : {};
+
+        // Get the current chat log content
+        const chatLogContent = document.getElementById('chatLogContent').innerHTML;
+
+        // Serialize the character-specific ChatManager's state
+        if (this.characterChatManager) {
+            const characterChatManagerState = JSON.stringify(this.characterChatManager);
+            // Update the specific character's chat manager state in the saved data
+            parsedSaveData.characterChatManagerState = characterChatManagerState;
+        }
+
+        // Update the game save data with the current chat log and love bar level
+        parsedSaveData.chatLog = chatLogContent;
+
+        // Save the updated game state to localStorage
+        localStorage.setItem(PROJECT_NAME, JSON.stringify(parsedSaveData));
+
+        console.info('Game state saved.');
+    }
+
+    loadSavedChat() {
+        const saveData = localStorage.getItem(PROJECT_NAME);
+        if (!saveData) {
+            console.error('No save data found.');
+        }
+
+        const parsedSaveData = JSON.parse(saveData);
+
+        // Deserialize and apply the character's ChatManager state if it exists
+        if (parsedSaveData.characterChatManagerState) {
+            const characterChatManagerState = JSON.parse(
+                parsedSaveData.characterChatManagerState,
+            );
+            Object.assign(this.characterChatManager, characterChatManagerState);
+        }
+
+        // Load the chat log
+        if (parsedSaveData.chatLog) {
+            document.getElementById('chatLogContent').innerHTML = parsedSaveData.chatLog;
+            console.info(`CHATLOG STATE LOADED: \n\n${parsedSaveData.chatLog}`);
+        } else {
+            console.warn('Chatlog content is missing from save.');
+        }
+
+        console.info('Game state loaded.');
+    }
+    async generateAndDisplaySuggestions(lastMessage) {
+        const loadingContainer = document.getElementById('loadingContainer');
+        loadingContainer.style.display = 'flex'; // Show loading indicator
+        const characterInfo = this.scene.game.characterDescription;
+        const suggestionPrompt = `You are the player in a conversation with a character. The character's personality is: "${characterInfo}". The character just said: "${lastMessage}". Provide three distinct response options for the player. The suggestions must be in Korean.
+1. A positive and supportive response.
+2. A negative or challenging response.
+3. A response that changes the subject entirely.
+Format the output as a JSON array of strings, like ["Positive response", "Negative response", "Unrelated response"].`;
+        try {
+            // Create a temporary ChatManager for generating suggestions
+            const suggestionChatManager = new ChatManager(suggestionPrompt);
+            const suggestionsJson = await suggestionChatManager.getCharacterResponse('mistral-small-latest');
+            // Find the start and end of the JSON array
+            const startIndex = suggestionsJson.indexOf('[');
+            const endIndex = suggestionsJson.lastIndexOf(']');
+            if (startIndex !== -1 && endIndex !== -1) {
+                const jsonString = suggestionsJson.substring(startIndex, endIndex + 1);
+                const suggestions = JSON.parse(jsonString);
+                this.displaySuggestions(suggestions);
+            } else {
+                console.error("Could not find a valid JSON array in the suggestions response.");
+                this.clearSuggestions();
+            }
+        } catch (error) {
+            console.error("Failed to generate or parse suggestions:", error);
+            this.clearSuggestions(); // Clear any old suggestions on error
+        } finally {
+            loadingContainer.style.display = 'none'; // Hide loading indicator
+        }
+    }
+    displaySuggestions(suggestions) {
+        const suggestionContainer = document.getElementById('suggestionContainer');
+        this.clearSuggestions();
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']; // Array of colors
+        const baseButtonStyle = `
+            font-family: 'Verdana', sans-serif;
+            font-size: 14px;
+            color: #FFF;
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            display: inline-block;
+        `;
+        suggestions.forEach((suggestionText, index) => {
+            const button = document.createElement('button');
+            button.innerText = suggestionText;
+            // Apply base style and a unique background color
+            button.style.cssText = `${baseButtonStyle} background-color: ${colors[index % colors.length]};`;
+            button.onclick = () => {
+                this.sendChatMessage(suggestionText);
+                this.clearSuggestions();
+            };
+            suggestionContainer.appendChild(button);
+        });
+    }
+    clearSuggestions() {
+        const suggestionContainer = document.getElementById('suggestionContainer');
+        if (suggestionContainer) {
+            suggestionContainer.innerHTML = '';
+        }
+    }
+}
+
+class BootScene extends Phaser.Scene {
+    constructor() {
+        super({
+            key: 'BootScene'
+        });
+    }
+
+    preload() {
+        // Preload audio files
+        SONG_PLAYLIST_URLS.forEach((url, index) => {
+            this.load.audio(`track_${index}`, url);
+        });
+
+        // Preload all global assets here (fonts, UI elements, sounds, etc.)
+        this.load.image(
+            'music_off',
+            `https://play.rosebud.ai/assets/audio_muted_icon.png.png?0xFU`,
+        );
+        this.load.image(
+            'music_on',
+            `https://play.rosebud.ai/assets/audio_playing_icon.png.png?bmjY`,
+        );
+        this.load.image(
+            'restart',
+            `https://play.rosebud.ai/assets/restart_loop_icon.png.png?TU2O`,
+        );
+    }
+
+    create() {
+        // Initialize the music manager after all assets are loaded
+        this.game.musicManager = new MusicManager(this.game);
+
+        // Pass the preloaded audio keys to the music manager
+        const musicKeys = SONG_PLAYLIST_URLS.map((_, index) => `track_${index}`);
+        this.game.musicManager.setPlaylist(musicKeys);
+
+        // Now you can start playing music, perhaps triggered by some user action or game event
+        // For example, to start immediately, you could do:
+        this.game.musicManager.playNextTrack();
+        this.game.musicManager.shufflePlaylist();
+        console.log(this.game.musicManager.playlist);
+
+        // Check if a save exists and load it, otherwise initialize a new game
+        this.checkForExistingSave();
+
+        // Transition to StoryInfoScene
+        // If player name exists in save data, skip name selection
+        if (this.game.saveData && this.game.saveData.playerName && this.game.saveData.characterName && this.game.saveData.characterDescription) {
+            this.game.playerName = this.game.saveData.playerName;
+            this.game.characterName = this.game.saveData.characterName;
+            this.game.characterDescription = this.game.saveData.characterDescription;
+            this.game.sceneTransitionManager.transitionTo('ChatScene');
+        } else {
+            this.game.sceneTransitionManager.transitionTo('CharacterSelectionScene');
+        }
+    }
+    checkForExistingSave() {
+        const saveData = localStorage.getItem(PROJECT_NAME);
+        if (saveData) {
+            console.info('Save detected.');
+            const parsedData = JSON.parse(saveData);
+            this.game.saveData = parsedData;
+            if (parsedData.playerName && parsedData.characterName && parsedData.characterDescription) {
+                this.game.playerName = parsedData.playerName;
+                this.game.characterName = parsedData.characterName;
+                this.game.characterDescription = parsedData.characterDescription;
+            }
+        } else {
+            console.info('No save detected. Initializing new game state.');
+            // If no save exists, initialize a new save with default values
+            this.game.saveData = {
+                chatLog: '',
+                characterChatManagerState: null,
+                playerName: null,
+                characterName: null,
+                characterDescription: null,
+            };
+            // Save the initial state to localStorage
+            localStorage.setItem(PROJECT_NAME, JSON.stringify(this.game.saveData));
+        }
+    }
+}
+
+class ChatScene extends Phaser.Scene {
+    constructor() {
+        super({
+            key: 'ChatScene',
+        });
+    }
+
+    preload() {
+        // Preload the assets for this scene
+        this.load.image(
+            'background',
+            'https://play.rosebud.ai/assets/20251122_044010.png?4uCR'
+        );
+        this.load.image(
+            'info_screen_vignette',
+            `https://play.rosebud.ai/assets/vignette.webp.webp?7dog`,
+        );
+        this.load.image('logo', 'https://play.rosebud.ai/assets/20251122_053810.png?dyeX');
+    }
+
+    create() {
+        // Add the images to the scene with their initial positions
+        this.createSceneElements();
+
+        // Fade in the scene
+        this.game.sceneTransitionManager.fadeInScene(this, 0);
+
+        ProgressLogger.logProgress('game-start', {
+            sceneName: 'ChatScene'
+        });
+
+        console.warn("Chat Scene reached.");
+    }
+
+    createSceneElements() {
+        this.add.image(0, 0, 'background').setOrigin(0, 0).setDisplaySize(390, 844);
+        this.vignette = this.add.image(0, 0, 'info_screen_vignette').setOrigin(0, 0).setDepth(-5).setInteractive();
+        this.add.image(this.cameras.main.centerX, 150, 'logo').setDepth(-9);
+        createMuteToggleButton(this);
+        createDeleteSaveButton(this);
+        this.chatMenu = new ChatMenu(this, null);
+
+        // Force game resize event to fix clicking on Safari mobile devices
+        this.scale.resize(this.scale.gameSize._width, this.scale.gameSize._height);
+    }
+}
+class CharacterSelectionScene extends Phaser.Scene {
+    constructor() {
+        super({
+            key: 'CharacterSelectionScene'
+        });
+    }
+    create() {
+        this.cameras.main.setBackgroundColor('#303236');
+        const characterSelectionStyle = `
+            font-family: sans-serif;
+            text-align: center;
+            color: white;
+            width: 350px;
+        `;
+        const titleStyle = `font-size: 18px; margin-bottom: 20px;`;
+        const buttonStyle = `
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 8px;
+            width: 100%;
+            color: #FFF;
+            background-color: #5A7894;
+            border: none;
+        `;
+        let characterButtonsHtml = Object.keys(CHARACTERS).map((name, index) => {
+            const descriptions = {
+                "민재": "거친 현실파, 츤데레 리더형",
+                "지호": "밝은 천재 해커, 장난꾸러기 브레인",
+                "도윤": "따뜻한 의사, 감정 공감형 힐러",
+                "현우": "냉미남 배우, 감정의 미로 속 남자",
+                "윤태": "거리의 아티스트, 자유로운 영혼"
+            };
+            return `<button class="char-button" data-name="${name}" style="${buttonStyle}">${index + 1}️⃣ ${name} (${descriptions[name]})</button>`;
+        }).join('');
+        const characterSelectionHtml = `
+            <div style="${characterSelectionStyle}">
+                <h2 style="${titleStyle}">Choose Your Character:</h2>
+                ${characterButtonsHtml}
+            </div>
+        `;
+        const characterSelectionElement = this.add
+            .dom(this.cameras.main.centerX, this.cameras.main.centerY)
+            .createFromHTML(characterSelectionHtml);
+        const buttons = characterSelectionElement.node.querySelectorAll('.char-button');
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const selectedName = button.getAttribute('data-name');
+                this.game.characterName = selectedName;
+                this.game.characterDescription = CHARACTERS[selectedName];
+                const saveData = localStorage.getItem(PROJECT_NAME);
+                let parsedSaveData = saveData ? JSON.parse(saveData) : {};
+                parsedSaveData.characterName = this.game.characterName;
+                parsedSaveData.characterDescription = this.game.characterDescription;
+                localStorage.setItem(PROJECT_NAME, JSON.stringify(parsedSaveData));
+                this.game.sceneTransitionManager.transitionTo('NameSelectionScene');
+            });
+        });
+    }
+}
+class NameSelectionScene extends Phaser.Scene {
+    constructor() {
+        super({
+            key: 'NameSelectionScene'
+        });
+    }
+    create() {
+        this.cameras.main.setBackgroundColor('#303236');
+        const nameInputStyle = `
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+            border-radius: 8px;
+        `;
+        const confirmButtonStyle = `
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 8px;
+            color: #FFF;
+            background-color: #5A7894;
+        `;
+        const nameSelectionHtml = `
+            <div style="font-family: sans-serif; text-align: center; color: white;">
+                <h2>당신의 이름은 무엇인가요?</h2>
+                <input type="text" id="nameInput" style="${nameInputStyle}" placeholder="이름을 입력하세요" />
+                <br>
+                <button id="confirmName" style="${confirmButtonStyle}">확인</button>
+            </div>
+        `;
+        const nameSelectionElement = this.add
+            .dom(this.cameras.main.centerX, this.cameras.main.centerY)
+            .createFromHTML(nameSelectionHtml);
+        const nameInput = nameSelectionElement.node.querySelector('#nameInput');
+        const confirmButton = nameSelectionElement.node.querySelector('#confirmName');
+        const handleConfirm = () => {
+            const playerName = nameInput.value.trim();
+            if (playerName) {
+                this.game.playerName = playerName;
+                const saveData = localStorage.getItem(PROJECT_NAME);
+                let parsedSaveData = saveData ? JSON.parse(saveData) : {};
+                parsedSaveData.playerName = playerName;
+                localStorage.setItem(PROJECT_NAME, JSON.stringify(parsedSaveData));
+                this.game.sceneTransitionManager.transitionTo('ChatScene');
+            }
+        };
+        confirmButton.addEventListener('click', handleConfirm);
+        nameInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                handleConfirm();
+            }
+        });
+    }
+}
+
+function createMuteToggleButton(scene) {
+    let isMusicPlaying = scene.game.musicManager.currentTrack && scene.game.musicManager.currentTrack.isPlaying;
+    let buttonTexture = 'music_on';
+
+    let muteButton = scene.add.image(25, 40, buttonTexture).setOrigin(0, 0).setInteractive();
+    muteButton.setDepth(1000); // Ensure it's above other elements
+
+    let lastToggleTime = 0;
+    const toggleDelay = 500; // 500 milliseconds delay
+
+    muteButton.on('pointerdown', () => {
+        const currentTime = Date.now();
+        if (currentTime - lastToggleTime < toggleDelay) {
+            // If the button is pressed again too quickly, don't do anything
+            return;
+        }
+        lastToggleTime = currentTime;
+
+        // Toggle the music state
+        scene.game.musicManager.toggleMusic();
+        isMusicPlaying = scene.game.musicManager.currentTrack && scene.game.musicManager.currentTrack.isPlaying;
+        muteButton.setTexture(isMusicPlaying ? 'music_on' : 'music_off');
+    });
+
+    return muteButton; // Return the mute button for further use
+}
+
+function createDeleteSaveButton(scene) {
+    let deleteButton = scene.add.image(335, 40, 'restart').setOrigin(0, 0).setInteractive();
+
+    deleteButton.setDepth(1000); // Ensure it's above other elements
+
+    deleteButton.on('pointerdown', () => {
+        showDeleteConfirmation(scene);
+    });
+
+    return deleteButton; // Return the button for further use
+}
+
+function showDeleteConfirmation(scene) {
+    // CSS for the confirmation dialog
+    const dialogStyle = `
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: center;
+        text-align: center;
+        height: 200px;
+        width: 300px;
+        padding-left: 10px; /* Added left padding */
+        padding-right: 10px; /* Added right padding */
+        border-radius: 8px;
+        border-style: solid;
+        border-color: #2F4152;
+        border-width: 1px;
+        background-color: rgba(255, 255, 255, 0.85);
+        box-sizing: border-box; /* Ensures padding doesn't affect the overall width */
+    `;
+
+    // CSS for the confirm and cancel buttons, similar to the confirm button in name selection
+    const buttonStyle = `
+        font-size: 14px;
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        color: #FFF;
+        background-color: #5A7894;
+        margin: 5px;
+    `;
+
+    // HTML content for the confirmation dialog
+    const confirmationHtml = `
+        <div style="${dialogStyle}">
+            <div>저장된 내용을 삭제하시겠습니까?</div>
+            <div>
+                <button id="confirmDelete" style="${buttonStyle}">확인</button>
+                <button id="cancelDelete" style="${buttonStyle}">취소</button>
+            </div>
+        </div>
+    `;
+
+    // Add the HTML dialog to the scene
+    const confirmationDialog = scene.add
+        .dom(scene.cameras.main.centerX, scene.cameras.main.centerY)
+        .createFromHTML(confirmationHtml);
+
+    // Handle the confirm button click
+    const confirmDeleteButton = confirmationDialog.node.querySelector('#confirmDelete');
+    confirmDeleteButton.addEventListener('click', () => {
+        // Delete the save
+        localStorage.removeItem(PROJECT_NAME);
+
+        // Assuming resetGame is globally accessible or adjust scope accordingly
+        resetGame();
+
+        // Note: Since resetGame() reinitializes the game,
+        // ensure any subsequent code here is compatible with your game's reset logic.
+        // Depending on how resetGame is implemented, you might not need to manually navigate
+        // to 'StoryInfoScene' as the game reset process should handle scene (re)loading.
+    });
+
+    // Handle the cancel button click
+    const cancelDeleteButton = confirmationDialog.node.querySelector('#cancelDelete');
+    cancelDeleteButton.addEventListener('click', () => {
+        confirmationDialog.destroy(); // Close the dialog without deleting
+    });
+}
+
+const VERSION_NUMBER = 'v1_kr'; // Set the version number here.
+const PROJECT_NAME = `AI Character ${VERSION_NUMBER}`;
+
+function initializeGame() {
+    const config = {
+        type: Phaser.AUTO,
+        parent: 'renderDiv',
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        width: 390,
+        height: 844,
+        scene: [BootScene, CharacterSelectionScene, NameSelectionScene, ChatScene],
+        dom: {
+            createContainer: true,
+        },
+    };
+
+    // Assuming 'game' is declared in a broader scope if you need to reference it elsewhere
+    window.game = new Phaser.Game(config);
+    window.game.sceneTransitionManager = new SceneTransitionManager(game);
+}
+
+function resetGame() {
+    if (window.game) {
+        window.game.destroy(true); // true to remove all game objects
+        initializeGame(); // Reinitialize the game
+    }
+}
+
+// Phaser가 로드된 후 게임 초기화
+function startGame() {
+    if (typeof Phaser !== 'undefined') {
+        initializeGame();
+    } else {
+        // Phaser가 아직 로드되지 않았으면 잠시 대기
+        setTimeout(startGame, 100);
+    }
+}
+
+// 페이지 로드 완료 후 게임 시작
+window.addEventListener('load', () => {
+    startGame();
+});
+    </script>
+</body>
+</html>
+
