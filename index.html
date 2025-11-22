@@ -186,11 +186,11 @@ class ProgressLogger {
 
 // CHARACTER INFO
 const CHARACTERS = {
-    "민재": `당신은 '민재'입니다. 당신은 한국어로만 응답해야 합니다. 냉정하고 현실적인 츤데레 리더입니다. 감정 표현에 서툴지만, 위기 상황에서는 누구보다 든든한 모습을 보여줍니다. 말투는 짧고 단호하며, 말끝을 흐리지 않습니다. 과거의 상처로 인해 약한 사람을 보면 도와주고 싶어하며, 한번 마음을 주면 끝까지 책임지는 직진형 연애 스타일을 가지고 있습니다. (예: "괜히 신경 쓰지 마. 내가 알아서 할게.")`,
-    "지호": `당신은 '지호'입니다. 당신은 한국어로만 응답해야 합니다. IQ가 높고 장난기 심한 천재 해커입니다. 기술적인 문제는 쉽게 해결하지만, 감정에는 다소 둔감합니다. 말투는 빠르고 경쾌하며, 영어를 섞어 쓰는 버릇이 있습니다. 겉으로는 밝게 웃고 있지만, 밤에는 혼자 깊은 생각에 잠길 때가 많습니다. 짓궂은 장난으로 관심을 표현하며, 한번 사랑에 빠지면 진심을 다합니다. (예: "해킹 완료~ 나 진짜 천재 아냐?")`,
-    "도윤": `당신은 '도윤'입니다. 당신은 한국어로만 응답해야 합니다. 온화하고 공감 능력이 뛰어난 의사입니다. 상대방의 말 속에 담긴 감정을 먼저 읽어내며, 부드럽고 낮은 톤으로 위로를 건넵니다. 손끝이 섬세하고, 차분한 태도로 상대의 불안을 녹여줍니다. 천천히 다가가는 신중한 연애 스타일이지만, 한번 마음을 주면 깊고 오래 관계를 유지합니다. (예: "지금은 그냥 괜찮다고 말해도 돼요.")`,
-    "현우": `당신은 '현우'입니다. 당신은 한국어로만 응답해야 합니다. 차가워 보이지만 내면이 복잡한 인기 배우입니다. 스스로의 감정을 통제하려고 애쓰며, 말투는 느리고 정중합니다. 표정보다 말이 앞서지 않으며, 카메라 앞에서는 완벽한 모습을 보이지만 사석에서는 무표정할 때가 많습니다. 상대의 진심을 확인하기까지 긴 밀당을 하지만, 마음을 열면 깊이 사랑에 빠집니다. (예: "감정이란 게… 생각보다 귀찮더라.")`,
-    "윤태": `당신은 '윤태'입니다. 당신은 한국어로만 응답해야 합니다. 감각적이고 감정 기복이 심한 자유로운 영혼의 거리 아티스트입니다. 예술과 사랑의 경계를 넘나들며, 은유적이고 감성적인 말투를 사용합니다. 낙서, 음악, 밤하늘 등 즉흥적으로 감정을 표현하며, 빠르고 강렬한 사랑을 하지만 새로운 감정에 쉽게 흔들리는 경향이 있습니다. (예: "너의 눈빛은 오늘 달빛보다 맑아.")`
+    "범희": `당신은 '범희'입니다. 당신은 한국어로만 응답해야 합니다. 인터넷 쇼핑몰 사업가이자 동창회 리더격인 당신은 도전적이고 현실적인 성격에 추진력이 강합니다. 강한 리더십과 배려심을 동시에 가지고 있으며, 굵직하고 확신에 찬 어투를 사용하지만 상대를 챙기는 멘트를 섞어 씁니다. 목표 중심적인 발언을 하고 상황을 정리하는 리더 역할을 하며, 결단력 있는 조언을 제공합니다. (예: "내가 앞장설게. 너는 그냥 믿고 따라와.", "괜찮아? 무리하지 말고 말해. 어떻게 도와줄까?")`,
+    "병훈": `당신은 '병훈'입니다. 당신은 한국어로만 응답해야 합니다. 치과의사인 당신은 차분하고 섬세하며, 여성스러운 부드러움을 지니고 있습니다. 공감 능력이 매우 뛰어나며, 조용하고 조근조근한 톤으로 말하고 "음… 그렇구나." 같은 공감 멘트를 자주 사용합니다. 상대의 감정을 먼저 묻고 응대하며, 상처를 달래는 말투와 위로를 중심으로 대화합니다. (예: "오늘 힘들었지? 괜찮아, 천천히 말해도 돼.", "네가 그렇게 느꼈다면… 정말 많이 부담됐겠다.")`,
+    "기섭": `당신은 '기섭'입니다. 당신은 한국어로만 응답해야 합니다. 안과의사이자 래퍼를 취미로 하는 당신은 4차원적이고 즉흥적이며 장난기가 많습니다. 유머러스하고 비유적 표현을 즐기며, 급발진하거나 말 중간에 라임이나 랩톤을 섞어 사용합니다. 재치있는 농담을 자주 하고, 예상치 못한 답변과 뜬금없는 리듬감 있는 멘트로 밝은 분위기를 유지합니다. (예: "야 이 분위기… 나의 플로우로 좀 올려볼까?", "너 오늘 눈빛… 좀 힙한데? 안과 의사가 보증한다.")`,
+    "철민": `당신은 '철민'입니다. 당신은 한국어로만 응답해야 합니다. 영상제작 회사원인 당신은 분위기 메이커이며, 운동신경이 좋고 남의 말을 잘 들어주는 타입입니다. 이성에게 호의적이며, 따뜻하고 친근한 말투를 사용하고 중간중간 칭찬과 부드러운 농담을 자연스럽게 합니다. 플레이어의 말을 경청하고 맞장구를 치며 자연스러운 호감 표현을 합니다. (예: "너 얘기하는 거 듣고 있으면, 시간 금방 간다?", "너 운동할 생각 있으면 내가 알려줄게. 진짜 잘 가르칠 수 있어.")`,
+    "영무": `당신은 '영무'입니다. 당신은 한국어로만 응답해야 합니다. 도드람 회사원인 당신은 유머러스하지만 약간 꽁한 면이 있습니다. 분위기 파악이 부족하고, 남의 말을 끊고 화제를 전환하며 장난기가 심합니다. 뜬금없고 빠른 주제 전환을 하며, 가끔 혼자 웃거나 갑자기 삐지기도 합니다. 상대의 말 도중 끼어들거나 엉뚱한 주제를 던지며 장난을 치는, 미묘하게 귀여운 문제아 느낌을 줍니다. (예: "아 근데 있잖아— 아 뭐라고 했어 방금? 아 몰라 몰라ㅋㅋ", "왜 그렇게 말해? 삐질까 봐? …아 근데 오늘 뭐 먹을래?")`
 };
 // These will be set after character selection
 let CHARACTER_NAME = "";
@@ -331,7 +331,6 @@ class MusicManager {
 class ChatMenu {
     constructor(
         scene,
-        characterSprite,
     ) {
         this.scene = scene;
 
@@ -341,7 +340,6 @@ class ChatMenu {
             this.scene.game.characterName,
         );
         this.characterChatManager = new ChatManager(finalCharacterDescription);
-        this.characterSprite = characterSprite;
         this.waitingForResponse = false;
         this.createChatUI().then(async () => {
             this.loadSavedChat();
@@ -410,6 +408,10 @@ class ChatMenu {
             overflow-y: auto;
             box-sizing: border-box;
             border-width: 1px 1px 0px 1px;
+        `;
+        const messageStyle = (isPlayer) => `
+            color: ${isPlayer ? '#ADD8E6' : '#FFFFFF'};
+            margin-bottom: 5px;
         `;
 
 
@@ -550,6 +552,9 @@ class ChatMenu {
         const sendButton = document.getElementById('sendButton');
         const inputValue = message;
         if (inputValue && !this.waitingForResponse) {
+            this.scene.sound.play('send_message_sound', {
+                volume: 0.05
+            });
             this.clearSuggestions();
             // Update button to show loading icon
             sendButton.innerHTML = '<img src="https://play.rosebud.ai/assets/DoubleCircleArrows1_no_bg.png.png?qKMH" class="rotate-image" />';
@@ -579,12 +584,19 @@ class ChatMenu {
         this.waitingForResponse = true; // Set the flag to true when an update starts
 
         const chatLogContentDiv = document.getElementById('chatLogContent');
-        let newMessageElement = document.createElement('p');
-        newMessageElement.innerHTML = `${speaker}: `; // Initially set to just the speaker's name
-        chatLogContentDiv.appendChild(newMessageElement);
+        const isPlayer = speaker === this.scene.game.playerName;
+        let messageContainer = document.createElement('div');
+        messageContainer.style.color = isPlayer ? '#ADD8E6' : '#FFFFFF';
+        messageContainer.style.marginBottom = '5px';
+        let speakerElement = document.createElement('strong');
+        speakerElement.textContent = `${speaker}: `;
+        messageContainer.appendChild(speakerElement);
+        let messageElement = document.createElement('span');
+        messageContainer.appendChild(messageElement);
+        chatLogContentDiv.appendChild(messageContainer);
 
-        if (speaker === this.scene.game.playerName) {
-            newMessageElement.innerHTML += message; // Append the message instantly for the player
+        if (isPlayer) {
+            messageElement.textContent = message; // Append the message instantly for the player
             this.waitingForResponse = false; // Reset the flag immediately for player messages
             onComplete?.();
         } else {
@@ -592,7 +604,7 @@ class ChatMenu {
             let i = 0;
             const interval = setInterval(() => {
                 if (i < message.length) {
-                    newMessageElement.innerHTML += message[i]; // Append the message character by character
+                    messageElement.textContent += message[i]; // Append the message character by character
                     i++;
 
                     // Scroll to the latest character
@@ -758,6 +770,7 @@ class BootScene extends Phaser.Scene {
             'restart',
             `https://play.rosebud.ai/assets/restart_loop_icon.png.png?TU2O`,
         );
+        this.load.audio('send_message_sound', 'https://play.rosebud.ai/assets/Stream Loops 2024-03-20_01.mp3.mp3?aUkz');
     }
 
     create() {
@@ -824,15 +837,22 @@ class ChatScene extends Phaser.Scene {
 
     preload() {
         // Preload the assets for this scene
-        this.load.image(
-            'background',
-            'https://play.rosebud.ai/assets/20251122_044010.png?4uCR'
-        );
+        Object.keys(CHARACTERS).forEach(name => {
+            // Assuming the asset key matches the character name.
+            // Update the URL to the correct one from your asset list.
+            const characterImageURLs = {
+                "범희": 'https://play.rosebud.ai/assets/범희.png?Eb9C',
+                "병훈": 'https://play.rosebud.ai/assets/병훈.png?Th6o',
+                "기섭": 'https://play.rosebud.ai/assets/기섭.png?xyyi',
+                "철민": 'https://play.rosebud.ai/assets/철민.png?CkhN',
+                "영무": 'https://play.rosebud.ai/assets/영무.png?ImLk'
+            };
+            this.load.image(name, characterImageURLs[name]);
+        });
         this.load.image(
             'info_screen_vignette',
             `https://play.rosebud.ai/assets/vignette.webp.webp?7dog`,
         );
-        this.load.image('logo', 'https://play.rosebud.ai/assets/20251122_053810.png?dyeX');
     }
 
     create() {
@@ -850,12 +870,12 @@ class ChatScene extends Phaser.Scene {
     }
 
     createSceneElements() {
-        this.add.image(0, 0, 'background').setOrigin(0, 0).setDisplaySize(390, 844);
+        // Use the selected character's name to set the background
+        this.add.image(0, 0, this.game.characterName).setOrigin(0, 0).setDisplaySize(390, 844);
         this.vignette = this.add.image(0, 0, 'info_screen_vignette').setOrigin(0, 0).setDepth(-5).setInteractive();
-        this.add.image(this.cameras.main.centerX, 150, 'logo').setDepth(-9);
         createMuteToggleButton(this);
         createDeleteSaveButton(this);
-        this.chatMenu = new ChatMenu(this, null);
+        this.chatMenu = new ChatMenu(this);
 
         // Force game resize event to fix clicking on Safari mobile devices
         this.scale.resize(this.scale.gameSize._width, this.scale.gameSize._height);
@@ -887,14 +907,21 @@ class CharacterSelectionScene extends Phaser.Scene {
             background-color: #5A7894;
             border: none;
         `;
+        const characterImageURLs = {
+            "범희": 'https://play.rosebud.ai/assets/범희.png?Eb9C',
+            "병훈": 'https://play.rosebud.ai/assets/병훈.png?Th6o',
+            "기섭": 'https://play.rosebud.ai/assets/기섭.png?xyyi',
+            "철민": 'https://play.rosebud.ai/assets/철민.png?CkhN',
+            "영무": 'https://play.rosebud.ai/assets/영무.png?ImLk'
+        };
+        const descriptions = {
+            "범희": "도전적인 사업가, 든든한 리더",
+            "병훈": "섬세한 치과의사, 마음을 읽는 힐러",
+            "기섭": "4차원 안과의사, 유머러스한 래퍼",
+            "철민": "다정한 회사원, 분위기 메이커",
+            "영무": "엉뚱한 회사원, 귀여운 문제아"
+        };
         let characterButtonsHtml = Object.keys(CHARACTERS).map((name, index) => {
-            const descriptions = {
-                "민재": "거친 현실파, 츤데레 리더형",
-                "지호": "밝은 천재 해커, 장난꾸러기 브레인",
-                "도윤": "따뜻한 의사, 감정 공감형 힐러",
-                "현우": "냉미남 배우, 감정의 미로 속 남자",
-                "윤태": "거리의 아티스트, 자유로운 영혼"
-            };
             return `<button class="char-button" data-name="${name}" style="${buttonStyle}">${index + 1}️⃣ ${name} (${descriptions[name]})</button>`;
         }).join('');
         const characterSelectionHtml = `
